@@ -3,13 +3,12 @@ package com.gruporihappy.fortivi.auth.logic
 import android.content.Context
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import com.android.volley.Request
-import com.android.volley.RequestQueue
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 
 
-class AuthFlow (private val username: String, private val password: String, private val context: Context, private val logs: SnapshotStateList<String>){
+class AuthFlow (private val username: String, private val password: String, context: Context, private val logs: SnapshotStateList<String>){
     private val queue = Volley.newRequestQueue(context)
     private var magic = ""
     private val url = "https://speedtest.net/"
@@ -53,7 +52,7 @@ class AuthFlow (private val username: String, private val password: String, priv
 
         queue.add(
             object : StringRequest(Method.POST, "http://10.105.8.1:1000",
-                Response.Listener<String> {
+                Response.Listener {
                     logs.add("Magic ID validated")
                 },
                 Response.ErrorListener { error ->
