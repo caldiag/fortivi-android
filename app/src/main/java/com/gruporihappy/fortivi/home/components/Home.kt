@@ -34,10 +34,10 @@ import java.util.Calendar
 fun Home(context: Context) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val logs = remember { mutableStateListOf<String>("Start") }
+    val logs = remember { mutableStateListOf("Start") }
 
     Row (horizontalArrangement = Arrangement.Absolute.SpaceBetween) {
-//          Login
+//      Login
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier
             .padding(50.dp, 30.dp)
             .weight(1f)) {
@@ -69,17 +69,15 @@ fun Home(context: Context) {
         VerticalDivider(
             color = Color.Gray,
             modifier = Modifier
-                .fillMaxHeight()  //fill the max height
+                .fillMaxHeight()
                 .width(2.dp)
         )
-//          Logs
+
+//      Logs
         Column (modifier = Modifier
             .weight(1f)
             .padding(50.dp, 30.dp, 0.dp, 50.dp)) {
-
             Text("Logs", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 30.dp))
-
-//              https://rapidapi.com/petapro/api/linguatools-sentence-generating
             LazyColumn(modifier = Modifier
                 .padding(0.dp, 0.dp, 50.dp, 0.dp)
                 .fillMaxHeight(0.9f)) {
@@ -88,6 +86,7 @@ fun Home(context: Context) {
                     TextButton(onClick = {}){ Text("${Calendar.getInstance().time} | $it") }
                 }
             }
+
             Row  (horizontalArrangement = Arrangement.spacedBy(15.dp)){
                 Button(onClick = {logs.clear(); logs.add("Start")}) {
                     Text("Clear logs")
