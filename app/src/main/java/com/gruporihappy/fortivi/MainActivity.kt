@@ -45,6 +45,7 @@ import com.android.volley.toolbox.Volley
 import com.gruporihappy.fortivi.ui.theme.FortiviTheme
 import java.net.URL
 import java.util.Calendar
+import com.gruporihappy.fortivi.auth.logic.AuthFlow
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,10 +69,11 @@ fun Home(context: Context) {
     var password by remember { mutableStateOf("") }
 
         Row (horizontalArrangement = Arrangement.Absolute.SpaceBetween) {
+            val logs = remember { mutableStateListOf<String>()}
 //          Login
             Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier
                 .padding(50.dp, 30.dp)
-                .fillMaxWidth(0.5f)) {
+                .weight(1f)) {
                 Text(
                     "FortiGate Login",
                     fontSize = 30.sp,
@@ -86,7 +88,10 @@ fun Home(context: Context) {
                     value = password,
                     onValueChange = { newPassword -> password = newPassword },
                     label = { Text("Password") })
-                Button(onClick = { /*TODO*/ }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
+                Button(onClick = {
+                    val auth = AuthFlow(username, password, context, logs)
+                    auth.start()
+                }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
                     Text("Authenticate")
                 }
             }
@@ -97,44 +102,22 @@ fun Home(context: Context) {
                     .width(2.dp)
             )
 //          Logs
-            val logs = remember {mutableStateListOf<String>()}
             Column (modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .padding(50.dp, 30.dp, 0.dp, 50.dp)) {
 
-                Text("Logs", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, color = Color.DarkGray, modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 30.dp))
+                Text("Logs", fontSize = 30.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 30.dp))
 
 //              https://rapidapi.com/petapro/api/linguatools-sentence-generating
                 LazyColumn(modifier = Modifier
                     .padding(0.dp, 0.dp, 50.dp, 0.dp)
                     .fillMaxHeight(0.9f)) {
                     items(logs) {
-                        HorizontalDivider(thickness = 1.dp, color = Color.LightGray)
+                        HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                         TextButton(onClick = {}){Text("${Calendar.getInstance().time} | $it")}
                     }
                 }
                 Row  (horizontalArrangement = Arrangement.spacedBy(15.dp)){
-
-                    Button(onClick = {
-                        val queue = Volley.newRequestQueue(context)
-                        val url = "https://baconipsum.com/api/?type=all-meat&sentences=1"
-
-                        val stringRequest = StringRequest(Request.Method.GET, url,
-                            { response ->
-                                logs.add("Initialize HTTP Request to FortiGate Server")
-                                logs.add("Got magic ID")
-                                logs.add("Sending magic ID to FortiGate port 1003")
-                                logs.add("Received connection end, checking network access")
-                                logs.add("200 OK CONNECT")
-                                println(logs)
-                            },
-                            { Toast.makeText(context, "That didn't work!", Toast.LENGTH_LONG).show()}
-                        )
-
-                        queue.add(stringRequest)
-                    }) {
-                        Text("Add log")
-                    }
                     Button(onClick = {logs.clear()}) {
                         Text("Clear logs")
                     }
