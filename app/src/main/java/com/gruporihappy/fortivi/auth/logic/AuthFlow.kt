@@ -12,7 +12,8 @@ class AuthFlow (private val username: String, private val password: String, cont
     private val queue = Volley.newRequestQueue(context)
     private var magic = ""
     private val url = "https://speedtest.net/"
-
+    private val postUrl = "http://10.105.8.1:1000"
+    private val validateUrl = "http://10.105.8.1:1003/fgtauth?${magic}"
 
     fun start(){
         logs.add("Attempt HTTP Request to Web")
@@ -25,22 +26,27 @@ class AuthFlow (private val username: String, private val password: String, cont
             Request.Method.GET, url,
             { response ->
                 magic = response.substring(91, 107)
-                logs.add("Got magic ID: $magic")
+                logs.add("Got possible magic ID: $magic")
                 validateMagic()
             },
-            { error -> logs.add("Could not get Magic ID. $error")}
+            { error ->
+                logs.add("Could not get Magic ID. $error")
+                logs.add("Stopped.")
+            }
         ))
     }
 
     private fun validateMagic(){
-        val validateUrl = "http://10.105.8.1:1003/fgtauth?${magic}"
         queue.add(StringRequest(
             Request.Method.GET, validateUrl,
             {
                 logs.add("Magic ID validated")
                 authenticate()
             },
-            { error -> logs.add("Could not validate Magic ID. $error")}
+            { error ->
+                logs.add("Could not validate Magic ID. $error")
+                logs.add("Stopped.")
+            }
         ))
     }
     private fun authenticate(){
@@ -51,12 +57,13 @@ class AuthFlow (private val username: String, private val password: String, cont
         params["password"] = password
 
         queue.add(
-            object : StringRequest(Method.POST, "http://10.105.8.1:1000",
+            object : StringRequest(Method.POST, postUrl,
                 Response.Listener {
                     logs.add("Magic ID validated")
                 },
                 Response.ErrorListener { error ->
                     logs.add("Could not validate Magic ID. $error")
+                    logs.add("Stopped.")
                 }) {
 
                 override fun getParams(): MutableMap<String, String> {
