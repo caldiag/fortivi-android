@@ -1,17 +1,26 @@
 package com.gruporihappy.fortivi.viewmodel.logs
 
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 
 class LogsViewModel : ViewModel() {
-    private var logs = MutableStateFlow<MutableList<String>>(mutableListOf())
-    fun read(): MutableStateFlow<MutableList<String>> {
-        return logs
+    private val _logs = MutableLiveData<MutableList<String>>(mutableListOf("Start"))
+    val logs: LiveData<MutableList<String>> = _logs
+
+    fun add(log: String, from: String) {
+        println("from $from: \n$log")
+        val currentLogs = _logs.value ?: mutableListOf()
+        currentLogs.add(log)
+        _logs.postValue(currentLogs)
     }
-    fun clear(){
-        logs.value.clear()
+
+    fun read(): List<String>? {
+        return logs.value
     }
-    fun add(log: String){
-        logs.value.add(log)
+
+    fun clear() {
+        _logs.value?.clear()
+        _logs.postValue(_logs.value)
     }
 }

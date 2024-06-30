@@ -2,7 +2,6 @@ package com.gruporihappy.fortivi
 
 import android.content.Context
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,14 +14,15 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("Credentials", Context.MODE_PRIVATE)
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-            val channel = NotificationChannel("manager_channel", "Manager Notifications", NotificationManager.IMPORTANCE_HIGH)
+            val channel = NotificationChannel("manager_channel", "Manager Notifications", NotificationManager.IMPORTANCE_LOW)
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    Home(this, prefs)
+                    Home(this, prefs, this)
                 }
             }
         }

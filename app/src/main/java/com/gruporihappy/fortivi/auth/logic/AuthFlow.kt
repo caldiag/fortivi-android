@@ -1,21 +1,17 @@
 package com.gruporihappy.fortivi.auth.logic
 
+import AuthFlowLogs
+import CredentialsLogs
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.Application
+import android.app.NotificationManager
 import android.content.Context
-import androidx.compose.runtime.MutableState
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.app.NotificationCompat
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.HurlStack
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
-import com.gruporihappy.fortivi.viewmodel.logs.CredentialsViewModel
-import com.gruporihappy.fortivi.viewmodel.logs.LogsViewModel
+import com.gruporihappy.fortivi.R
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.HttpsURLConnection
@@ -24,30 +20,42 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-
-class AuthFlow (private val username: MutableState<String>, private val password: MutableState<String>, context: Context) {
+class AuthFlow (context: Context) {
     private val queue = Volley.newRequestQueue(context, HurlStack(null, createSslSocketFactory()))
     private var magic = ""
     private val url = "http://www.bing.com/"
     private var validateUrl = "http://192.168.102.1:1003/fgtauth?"
     private val postUrl = "http://192.168.102.1:1000/"
     private var isConnecting = false
-    private val logsViewModel: LogsViewModel by lazy {
-        ViewModelProvider(context as Application as ViewModelStoreOwner).get(LogsViewModel::class.java)
+    private val thisUsername = CredentialsLogs.readUsername()
+    private val thisPassword = CredentialsLogs.readPassword()
+    private val thisContext = context
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    fun pushLog(log: String) {
+        val current = AuthFlowLogs.read()
+        current.add(log.take(200))
+        AuthFlowLogs.updateWorkResult(current)
+        println(current.joinToString("\n"))
+        val builder = NotificationCompat.Builder(thisContext, "manager_channel")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Running FortiGate")
+            .setContentText(current.last())
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+        notificationManager.notify(1, builder.build())
     }
 
     fun start() {
-        logsViewModel.add("Attempt HTTP Request to Web")
-        println("username is ${username} and password is $password")
-        println(logsViewModel.read().value.last())
+        pushLog("Start")
+        pushLog("Attempt HTTP Request to Web")
         isConnecting = true
         getMagic()
     }
 
-    fun stop() {
+    fun stop(reason: String) {
         queue.stop()
         isConnecting = false
-        logsViewModel.add("Stopped.")
+        pushLog("STOPPED: $reason")
     }
 
     private fun getMagic() {
@@ -57,13 +65,13 @@ class AuthFlow (private val username: MutableState<String>, private val password
                 //stupid and unfathomable
                 magic = response.substring(response.indexOf("?")+1, response.indexOf("?")+17)
 
-                logsViewModel.add("Got possible magic ID: $magic from $response")
+                pushLog("Got possible magic ID: $magic")
                 validateMagic()
             },
             { error ->
-                logsViewModel.add("Could not get magic ID. $error")
+                pushLog("Could not get magic ID. $error")
                 isConnecting = false
-                logsViewModel.add("Stopped at getting magic.")
+                pushLog("Stopped at getting magic.")
             }
         ))
     }
@@ -73,29 +81,26 @@ class AuthFlow (private val username: MutableState<String>, private val password
         queue.add(StringRequest(
             Request.Method.GET, validateUrl,
             {
-                logsViewModel.add("Magic ID validated at $validateUrl")
+                pushLog("Magic ID validated at $validateUrl")
                 authenticate()
             },
             { error ->
-                logsViewModel.add("Could not validate Magic ID at$validateUrl. $error.")
-                this.stop()
+                this.stop("Could not validate Magic ID at $validateUrl. $error.")
             }
         ))
     }
 
     private fun authenticate() {
-        logsViewModel.add("Pushing authentication payload")
+        pushLog("Pushing authentication payload")
 
-        val pureText = "4tredir=$url&magic=$magic&username=$username&password=$password"
+        val pureText = "4tredir=$url&magic=$magic&username=$thisUsername&password=$thisPassword"
         queue.add(
             object : StringRequest(Method.POST, postUrl,
                 Response.Listener {
-                    logsViewModel.add("Authenticated")
-                    this.stop()
+                    this.stop("Authenticated")
                 },
                 Response.ErrorListener {
-                    logsViewModel.add("Got end of stream (maybe expected). Test your connection!")
-                    this.stop()
+                    this.stop("Got end of stream (maybe expected). Test your connection!")
                 }) {
                 override fun getBodyContentType(): String {
                     return "text/plain; charset=utf-8"
@@ -111,7 +116,8 @@ class AuthFlow (private val username: MutableState<String>, private val password
 
     companion object {
         private fun createSslSocketFactory(): SSLSocketFactory {
-            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+            val trustAllCerts = arrayOf<TrustManager>(@SuppressLint("CustomX509TrustManager")
+            object : X509TrustManager {
                 @SuppressLint("TrustAllX509TrustManager")
                 override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
                 @SuppressLint("TrustAllX509TrustManager")

@@ -1,6 +1,7 @@
 package com.gruporihappy.fortivi.home.components
 
-import android.app.Application
+import AuthFlowLogs
+import CredentialsLogs
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -22,8 +23,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,22 +33,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat.getSystemService
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
 import com.gruporihappy.fortivi.auth.logic.ConnectionManagerService
-import com.gruporihappy.fortivi.viewmodel.logs.LogsViewModel
+import android.app.Notification
+import android.app.NotificationManager
 
 @Composable
-fun Home(context: Context, prefs: SharedPreferences) {
+fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOwner) {
     var username by remember { mutableStateOf(prefs.getString("username", "") ?: "") }
     var password by remember { mutableStateOf(prefs.getString("password", "") ?: "") }
     var hasUsername by remember { mutableStateOf(prefs.contains("username")) }
     var hasPassword by remember { mutableStateOf(prefs.contains("password")) }
     val editor = prefs.edit()
-    val logsViewModel = viewModel<LogsViewModel>()
-    val logsFlow = logsViewModel.read().collectAsStateWithLifecycle()
+
+    val logs = remember { mutableStateListOf<String>() }
+
+    AuthFlowLogs.workResult.observe(lifecycleOwner) { result ->
+        logs.clear()
+        logs.addAll(result)
+    }
 
     Row(horizontalArrangement = Arrangement.SpaceBetween) {
         // Login Column
@@ -84,6 +90,8 @@ fun Home(context: Context, prefs: SharedPreferences) {
                         return@Button
                     }
 
+                    CredentialsLogs.updateUsername(username)
+                    CredentialsLogs.updatePassword(password)
                     Intent(context, ConnectionManagerService::class.java).also {
                         it.action = ConnectionManagerService.Actions.START.toString()
                         context.startService(it)
@@ -92,17 +100,13 @@ fun Home(context: Context, prefs: SharedPreferences) {
                     Text("Start")
                 }
                 FilledTonalButton(onClick = {
-                    if (username == "" || password == "") {
-                        Toast.makeText(context, "You need to input a username and a password.", Toast.LENGTH_LONG).show()
-                        return@FilledTonalButton
-                    }
-
                     Intent(context, ConnectionManagerService::class.java).also {
                         it.action = ConnectionManagerService.Actions.STOP.toString()
                         context.startService(it)
                     }
+                    AuthFlowLogs.updateWorkResult(logs.plus("Stopping...").toMutableList())
                 }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
-                    Text("Stop")
+                    Text("Stop auto-run.")
                 }
                 FilledTonalButton(onClick = {
                     if (username == "" || password == "") {
@@ -150,14 +154,14 @@ fun Home(context: Context, prefs: SharedPreferences) {
                     .padding(0.dp, 0.dp, 50.dp, 0.dp)
                     .fillMaxHeight(0.9f)
             ) {
-                items(logsFlow.value) {
+                items(logs) {
                     HorizontalDivider(thickness = 1.dp, color = Color.Gray)
                     TextButton(onClick = {}) { Text(it) }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-                Button(onClick = { logsViewModel.clear() }) {
+                Button(onClick = { AuthFlowLogs.updateWorkResult(mutableListOf("")) }) {
                     Text("Clear logs")
                 }
             }

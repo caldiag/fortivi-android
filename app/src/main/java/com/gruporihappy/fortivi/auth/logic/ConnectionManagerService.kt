@@ -1,6 +1,7 @@
 package com.gruporihappy.fortivi.auth.logic
 
 import ConnectivityCallback
+import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -12,7 +13,6 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE
 import com.gruporihappy.fortivi.R
-import com.gruporihappy.fortivi.viewmodel.logs.CredentialsViewModel
 
 class ConnectionManagerService: Service() {
     private lateinit var connectivityCallback: ConnectivityCallback
@@ -25,11 +25,11 @@ class ConnectionManagerService: Service() {
             Actions.START.toString() -> start()
             Actions.STOP.toString() -> stopSelf()
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
 
     private fun start() {
-        val notification = NotificationCompat.Builder(applicationContext, "manager_channel").setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle("Running FortiGate").setContentText("Logs go here").setOngoing(true).setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE).build()
+        val notification = NotificationCompat.Builder(applicationContext, "manager_channel").setAutoCancel(false).setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle("Running FortiGate").setContentText("Logs go here").setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE).setOngoing(true).setPriority(NotificationCompat.PRIORITY_HIGH).build()
         val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         connectivityCallback = ConnectivityCallback(this)
 
@@ -39,7 +39,6 @@ class ConnectionManagerService: Service() {
             .build()
 
         connectivityManager.registerNetworkCallback(networkRequest, connectivityCallback)
-
         startForeground(1, notification)
     }
 
