@@ -6,10 +6,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Looper
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.HurlStack
@@ -17,7 +13,6 @@ import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import java.util.logging.Handler
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocketFactory
@@ -39,7 +34,7 @@ class AuthFlow (context: Context) {
     fun start() {
         pushLog.new("Start: fetching credentials")
         if(username == "" || password == ""){
-            stop("Could not auto-start: no credentials saved.")
+            stop("Could not auto-start: no credentials saved", retry = false)
             Intent(thisContext, ConnectionManagerService::class.java).also {
                 it.action = ConnectionManagerService.Actions.STOP.toString()
                 thisContext.startService(it)
@@ -51,10 +46,9 @@ class AuthFlow (context: Context) {
     }
 
     fun stop(reason: String, retry: Boolean = true, finished: Boolean = false) {
-        pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds." else "")
-//        queue.stop()
-        //this stops the service if an error occurred from the auth flow
-        //and retry was not requested
+        pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds" else "")
+        //this stops the service if an error (such as end of stream errors)
+        // occurred from the auth flow and retry was not requested
         if (!retry && !finished){
             Intent(thisContext, ConnectionManagerService::class.java).also {
                 it.action = ConnectionManagerService.Actions.STOP.toString()
@@ -65,6 +59,7 @@ class AuthFlow (context: Context) {
 
         //if retry was not requested and finished is set to true, don't do anything
         //this way the app will sit doing nothing but listening for connection changes
+        //so it can restart auth flow if wifi state changes
         if (finished) return
 
         android.os.Handler(Looper.getMainLooper()).postDelayed(
@@ -87,6 +82,7 @@ class AuthFlow (context: Context) {
                 validateMagic()
             },
             { error ->
+                checkConnection()
                 stop("Could not get magic ID. $error")
             }
         ))
@@ -94,7 +90,7 @@ class AuthFlow (context: Context) {
 
     private fun validateMagic() {
         if (!AuthFlowLogs.readIsRunning().value) return
-        validateUrl = "https://192.168.102.1:1003/fgtauth?$magic"
+        validateUrl = "$validateUrl$magic"
         queue.add(StringRequest(
             Request.Method.GET, validateUrl,
             {
@@ -102,7 +98,7 @@ class AuthFlow (context: Context) {
                 authenticate()
             },
             { error ->
-                stop("Could not validate Magic ID at $validateUrl. $error.")
+                stop("Could not validate Magic ID at $validateUrl. $error")
             }
         ))
     }
@@ -118,7 +114,8 @@ class AuthFlow (context: Context) {
                     stop("Authenticated", finished = true)
                 },
                 Response.ErrorListener {
-                    stop("Got end of stream (maybe expected). Test your connection!", false)
+                    pushLog.new("Got end of stream (maybe expected). Testing your connection!")
+                    checkConnection()
                 }) {
                 override fun getBodyContentType(): String {
                     return "text/plain; charset=utf-8"
@@ -129,6 +126,14 @@ class AuthFlow (context: Context) {
                 }
             }
         )
+    }
+
+    private fun checkConnection() {
+        queue.add(StringRequest(Request.Method.GET, "https://caldiag.github.io/helloworld/", { response ->
+            if (response == "helloworld") stop("Authenticated", finished = true)
+        }, {
+            stop("Could not validate connection. Trying to authenticate again.")
+        }))
     }
 
 
