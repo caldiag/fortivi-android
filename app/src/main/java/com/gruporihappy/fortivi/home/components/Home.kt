@@ -33,19 +33,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
 import com.gruporihappy.fortivi.auth.logic.ConnectionManagerService
-import android.app.Notification
-import android.app.NotificationManager
 
 @Composable
 fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOwner) {
     var username by remember { mutableStateOf(prefs.getString("username", "") ?: "") }
     var password by remember { mutableStateOf(prefs.getString("password", "") ?: "") }
-    var hasUsername by remember { mutableStateOf(prefs.contains("username")) }
-    var hasPassword by remember { mutableStateOf(prefs.contains("password")) }
+    var hasUsername by remember { mutableStateOf(prefs.contains("username") && username.isNotBlank()) }
+    var hasPassword by remember { mutableStateOf(prefs.contains("password") && password.isNotBlank()) }
     CredentialsLogs.updateUsername(username)
     CredentialsLogs.updatePassword(password)
     val editor = prefs.edit()
@@ -93,7 +89,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
                 Button(onClick = {
                     //if service is not running, start
                     if(!isRunning){
-                        if (username == "" || password == "") {
+                        if (username.isBlank() || password.isBlank()) {
                             Toast.makeText(context, "You need to input a username and a password.", Toast.LENGTH_LONG).show()
                             return@Button
                         }
@@ -110,13 +106,13 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
                         it.action = ConnectionManagerService.Actions.STOP.toString()
                         context.startService(it)
                     }
-                    AuthFlowLogs.updateWorkResult(logs.plus("Stopped").toMutableList())
+                    AuthFlowLogs.updateWorkResult(logs.plus("Stopped manually: note that Fortivi will not check for connection changes when the service is manually stopped.").toMutableList())
 
                 }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
                     Text(if (!isRunning) "Start" else "Stop")
                 }
                 FilledTonalButton(onClick = {
-                    if (username == "" || password == "") {
+                    if (username.isBlank() || password.isBlank()) {
                         Toast.makeText(context, "You need to input a username and a password.", Toast.LENGTH_LONG).show()
                         return@FilledTonalButton
                     }
