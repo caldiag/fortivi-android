@@ -1,13 +1,12 @@
-import android.app.Application
+package com.gruporihappy.fortivi.auth.logic
+
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
-import androidx.lifecycle.ViewModelProvider
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.gruporihappy.fortivi.auth.logic.AuthFlow
-import com.gruporihappy.fortivi.viewmodel.logs.LogsViewModel
 
 class WifiWorker(context: Context, workerParams: WorkerParameters) :
     Worker(context, workerParams) {
@@ -21,5 +20,4 @@ class WifiWorker(context: Context, workerParams: WorkerParameters) :
         auth.start()
         return Result.success()
     }
-
 }

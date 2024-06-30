@@ -1,14 +1,11 @@
 package com.gruporihappy.fortivi.auth.logic
 
-import ConnectivityCallback
-import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE
@@ -23,7 +20,10 @@ class ConnectionManagerService: Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action){
             Actions.START.toString() -> start()
-            Actions.STOP.toString() -> stopSelf()
+            Actions.STOP.toString() -> {
+                AuthFlowLogs.setIsRunning(false)
+                stopSelf()
+            }
         }
         return START_STICKY
     }
@@ -39,6 +39,7 @@ class ConnectionManagerService: Service() {
             .build()
 
         connectivityManager.registerNetworkCallback(networkRequest, connectivityCallback)
+        AuthFlowLogs.setIsRunning(true)
         startForeground(1, notification)
     }
 

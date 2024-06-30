@@ -23,16 +23,16 @@ private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
     tertiary = Pink40,
-    onBackground = Color("white".toColorInt()),
-    onSurface = Color("white".toColorInt()),
+//    onBackground = Color("white".toColorInt()),
+//    onSurface = Color("white".toColorInt()),
 
     /* Other default colors to override
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     */
-    background = Color("white".toColorInt()),
-    surface = Color("white".toColorInt()),
+//    background = Color("white".toColorInt()),
+//    surface = Color("white".toColorInt()),
 )
 
 @Composable

@@ -1,13 +1,13 @@
+package com.gruporihappy.fortivi.auth.logic
+
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import androidx.work.Constraints
-import androidx.work.Data
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
-import com.gruporihappy.fortivi.viewmodel.logs.LogsViewModel
 
 class ConnectivityCallback(private val context: Context) : ConnectivityManager.NetworkCallback() {
 

@@ -46,13 +46,19 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
     var password by remember { mutableStateOf(prefs.getString("password", "") ?: "") }
     var hasUsername by remember { mutableStateOf(prefs.contains("username")) }
     var hasPassword by remember { mutableStateOf(prefs.contains("password")) }
+    CredentialsLogs.updateUsername(username)
+    CredentialsLogs.updatePassword(password)
     val editor = prefs.edit()
 
     val logs = remember { mutableStateListOf<String>() }
+    var isRunning by remember { mutableStateOf(false) }
 
     AuthFlowLogs.workResult.observe(lifecycleOwner) { result ->
         logs.clear()
         logs.addAll(result)
+    }
+    AuthFlowLogs.isRunning.observe(lifecycleOwner) {
+        isRunning = it.value
     }
 
     Row(horizontalArrangement = Arrangement.SpaceBetween) {
@@ -72,41 +78,42 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
                 keyboardOptions = KeyboardOptions(autoCorrect = false),
                 value = username,
                 enabled = !hasUsername,
-                onValueChange = { username = it.lowercase() },
+                onValueChange = { username = it.lowercase(); CredentialsLogs.updateUsername(username) },
                 label = { Text("Username") }
             )
             TextField(
                 keyboardOptions = KeyboardOptions(autoCorrect = false),
                 value = password,
-                enabled = !hasUsername,
+                enabled = !hasPassword,
                 visualTransformation = PasswordVisualTransformation(),
-                onValueChange = { password = it },
+                onValueChange = { password = it; CredentialsLogs.updateUsername(password) },
                 label = { Text("Password") },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Button(onClick = {
-                    if (username == "" || password == "") {
-                        Toast.makeText(context, "You need to input a username and a password.", Toast.LENGTH_LONG).show()
+                    //if service is not running, start
+                    if(!isRunning){
+                        if (username == "" || password == "") {
+                            Toast.makeText(context, "You need to input a username and a password.", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+                        CredentialsLogs.updateUsername(username)
+                        CredentialsLogs.updatePassword(password)
+                        Intent(context, ConnectionManagerService::class.java).also {
+                            it.action = ConnectionManagerService.Actions.START.toString()
+                            context.startService(it)
+                        }
                         return@Button
                     }
-
-                    CredentialsLogs.updateUsername(username)
-                    CredentialsLogs.updatePassword(password)
-                    Intent(context, ConnectionManagerService::class.java).also {
-                        it.action = ConnectionManagerService.Actions.START.toString()
-                        context.startService(it)
-                    }
-                }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
-                    Text("Start")
-                }
-                FilledTonalButton(onClick = {
+                    //if service is already running, stop
                     Intent(context, ConnectionManagerService::class.java).also {
                         it.action = ConnectionManagerService.Actions.STOP.toString()
                         context.startService(it)
                     }
-                    AuthFlowLogs.updateWorkResult(logs.plus("Stopping...").toMutableList())
+                    AuthFlowLogs.updateWorkResult(logs.plus("Stopped").toMutableList())
+
                 }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
-                    Text("Stop auto-run.")
+                    Text(if (!isRunning) "Start" else "Stop")
                 }
                 FilledTonalButton(onClick = {
                     if (username == "" || password == "") {
@@ -115,7 +122,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
                     }
                     editor.putString("username", username)
                     editor.putString("password", password)
-                    editor.commit()
+                    editor.apply()
 
                     hasUsername = true
                     hasPassword = true
@@ -129,6 +136,8 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
 
                     hasUsername = false
                     hasPassword = false
+                    username = ""
+                    password = ""
                 }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
                     Text("Clear")
                 }

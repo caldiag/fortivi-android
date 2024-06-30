@@ -14,9 +14,10 @@ import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("Credentials", Context.MODE_PRIVATE)
@@ -33,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         setContent {
             enableEdgeToEdge()
-            FortiviTheme {
+            FortiviTheme(darkTheme = false) {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
