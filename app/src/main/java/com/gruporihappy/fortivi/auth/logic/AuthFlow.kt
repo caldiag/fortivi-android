@@ -22,7 +22,7 @@ import javax.net.ssl.X509TrustManager
 class AuthFlow (context: Context) {
     private val queue = Volley.newRequestQueue(context, HurlStack(null, createSslSocketFactory()))
     private var magic = ""
-    private val url = "http://www.fast.net/"
+    private val url = "https://caldiag.github.io/helloworld/lorem"
     private var validateUrl = "http://192.168.102.1:1003/fgtauth?"
     private val postUrl = "http://192.168.102.1:1000/"
     private val prefs = context.getSharedPreferences("Credentials", Context.MODE_PRIVATE)
@@ -43,6 +43,10 @@ class AuthFlow (context: Context) {
     }
 
     fun stop(reason: String, retry: Boolean = true, finished: Boolean = false) {
+        //if we got here and authenticating is already set to false
+        //this means something else already stopped the services. retreat
+        if (!AuthFlowLogs.readIsAuthenticating().value) return
+
         pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds" else "", if (!retry && !finished) 2 else 1)
 
         //this stops the service if an error (such as end of stream errors)
