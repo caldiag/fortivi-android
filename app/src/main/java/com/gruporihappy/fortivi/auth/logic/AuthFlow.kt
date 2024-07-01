@@ -46,7 +46,7 @@ class AuthFlow (context: Context) {
         //this means something else already stopped the services. retreat
         if (!AuthFlowLogs.readIsAuthenticating().value) return
 
-        pushLog.new("INTERRUPTED: $reason" + if(retry && !success) ". Trying again in 10 seconds" else "", notId = if (!retry && !success) 2 else 1)
+        pushLog.new("${if (success) "SUCCESS:" else "INTERRUPTED:"} $reason" + if(retry && !success) ". Trying again in 10 seconds" else "", notId = if (!retry && !success) 2 else 1)
 
         //this stops the service if an error (such as end of stream errors)
         //occurred from the auth flow and retry was not requested
