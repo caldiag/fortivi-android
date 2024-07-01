@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LifecycleOwner
 import com.gruporihappy.fortivi.auth.logic.ConnectionManagerService
 
@@ -67,6 +68,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
         ) {
             Text(
                 "FortiGate Login",
+                fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier.padding(0.dp, 0.dp, 0.dp, 20.dp)
             )
@@ -107,6 +109,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
                         context.startService(it)
                     }
                     AuthFlowLogs.updateWorkResult(logs.plus("Stopped manually: note that Fortivi will not check for connection changes when the service is manually stopped.").toMutableList())
+                    AuthFlowLogs.setIsAuthenticating(false)
 
                 }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
                     Text(if (!isRunning) "Start" else "Stop")
