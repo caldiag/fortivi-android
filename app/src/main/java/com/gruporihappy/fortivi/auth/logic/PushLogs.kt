@@ -20,7 +20,7 @@ class PushLogs(context: Context) {
     fun new(log: String, notId: Int = 1) {
         val notificationManager = thisContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val current = AuthFlowLogs.read().plus(log.take(200)).toMutableList()
-        AuthFlowLogs.updateWorkResult(current)
+        AuthFlowLogs.updateWorkResult(current.subList(if (current.size >= 500) current.size-500 else 0, current.size))
         val builder = NotificationCompat.Builder(thisContext, "manager_channel")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Running Fortivi")
