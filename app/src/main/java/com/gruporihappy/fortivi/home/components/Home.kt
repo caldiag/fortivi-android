@@ -125,7 +125,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
 
                     hasUsername = true
                     hasPassword = true
-                }, Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
+                }, enabled = !(hasUsername && hasPassword), modifier = Modifier.padding(0.dp, 20.dp, 0.dp, 0.dp)) {
                     Text("Save credentials")
                 }
                 FilledTonalButton(onClick = {
@@ -169,7 +169,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-                Button(onClick = { AuthFlowLogs.updateWorkResult(mutableListOf("")) }) {
+                if(logs.isNotEmpty()) Button(onClick = { AuthFlowLogs.updateWorkResult(mutableListOf()) }) {
                     Text("Clear logs")
                 }
             }
