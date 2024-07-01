@@ -23,8 +23,8 @@ class AuthFlow (context: Context) {
     private val queue = Volley.newRequestQueue(context, HurlStack(null, createSslSocketFactory()))
     private var magic = ""
     private val url = "https://caldiag.github.io/helloworld/lorem"
-    private var validateUrl = "http://192.168.102.1:1003/fgtauth?"
-    private val postUrl = "http://192.168.102.1:1000/"
+    private var validateUrl = "https://192.168.102.1:1003/fgtauth?"
+    private val postUrl = "https://192.168.102.1:1000/"
     private val prefs = context.getSharedPreferences("Credentials", Context.MODE_PRIVATE)
     private var username = if (prefs.contains("username")) prefs.getString("username", "") ?: "" else CredentialsLogs.readUsername()
     private var password = if (prefs.contains("password")) prefs.getString("password", "") ?: "" else CredentialsLogs.readPassword()
@@ -33,12 +33,12 @@ class AuthFlow (context: Context) {
 
     fun start() {
         AuthFlowLogs.setIsAuthenticating(true)
-        pushLog.new("Start: fetching credentials")
         if(username == "" || password == ""){
             stop("Could not auto-start: no credentials saved", retry = false)
             return
         }
-        checkConnection()
+//        checkConnection()
+        getMagic()
     }
 
     fun stop(reason: String, retry: Boolean = true, success: Boolean = false) {
@@ -46,7 +46,7 @@ class AuthFlow (context: Context) {
         //this means something else already stopped the services. retreat
         if (!AuthFlowLogs.readIsAuthenticating().value) return
 
-        pushLog.new("${if (success) "SUCCESS:" else "INTERRUPTED:"} $reason" + if(retry && !success) ". Trying again in 10 seconds" else "", notId = if (!retry && !success) 2 else 1)
+        pushLog.new("${if (success) "(SUCCESS)" else "(INTERRUPTED)"} $reason" + if(retry && !success) ". Trying again in 10 seconds" else "", notId = if (!retry && !success) 2 else 1)
 
         //this stops the service if an error (such as end of stream errors)
         //occurred from the auth flow and retry was not requested
@@ -76,14 +76,14 @@ class AuthFlow (context: Context) {
     }
 
     private fun getMagic() {
-        if (!AuthFlowLogs.readIsServiceRunning().value) return
+        pushLog.new("Attempting HTTP request to Web.")
         queue.cache.clear()
         queue.add(StringRequest(
             Request.Method.GET, url,
             { response ->
                 //stupid and unfathomable
                 magic = response.substring(response.indexOf("?")+1, response.indexOf("?")+17)
-                pushLog.new("Got possible magic ID: $magic")
+                pushLog.new("Got possible magic ID: $magic, from $response")
 
                 validateMagic()
             },
@@ -95,26 +95,25 @@ class AuthFlow (context: Context) {
 
     private fun validateMagic() {
         if (!AuthFlowLogs.readIsServiceRunning().value) return
-        validateUrl = "$validateUrl$magic"
+        val patchedValidateUrl = validateUrl + magic
         queue.cache.clear()
         queue.add(StringRequest(
-            Request.Method.GET, validateUrl,
+            Request.Method.GET, patchedValidateUrl,
             {
-                pushLog.new("Magic ID validated at $validateUrl")
+                pushLog.new("Magic ID validated at $patchedValidateUrl")
                 authenticate()
             },
             { error ->
-                stop("Could not validate Magic ID at $validateUrl. $error")
+                pushLog.new("Could not validate Magic ID at $patchedValidateUrl. $error.")
             }
         ))
     }
 
     private fun authenticate() {
         if (!AuthFlowLogs.readIsServiceRunning().value) return
-        pushLog.new("Pushing authentication payload")
-
-        val pureText = "4tredir=$url&magic=$magic&username=$username&password=$password"
         queue.cache.clear()
+        val pureText = "4tredir=$url&magic=$magic&username=$username&password=$password"
+        pushLog.new("Pushing authentication payload")
         queue.add(
             object : StringRequest(Method.POST, postUrl,
                 Response.Listener {
@@ -136,15 +135,14 @@ class AuthFlow (context: Context) {
     }
 
     private fun checkConnection() {
-        pushLog.new("Attempting HTTP request to Web.")
+        pushLog.new("Testing connection.")
         queue.cache.clear()
-        queue.add(StringRequest(Request.Method.GET, "https://caldiag.github.io/helloworld/", { response ->
+        queue.add(StringRequest(Request.Method.GET, "https://caldiag.github.io/helloworld", { response ->
             if (response == "helloworld") {
-                stop("Got $response, authenticated.", success = true)
+                stop("you are authenticated.", success = true)
             }
         }, {
-            //retry is false because getMagic retries manually.
-            stop("Could not validate connection. Trying to get magic ID", retry = false, success = false)
+            pushLog.new("Could not validate connection. Trying to get magic ID")
             getMagic()
         }))
     }
