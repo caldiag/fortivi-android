@@ -38,20 +38,19 @@ class AuthFlow (context: Context) {
             stop("Could not auto-start: no credentials saved", retry = false)
             return
         }
-        pushLog.new("Attempting HTTP Request to Web with user $username")
-        getMagic()
+        checkConnection()
     }
 
-    fun stop(reason: String, retry: Boolean = true, finished: Boolean = false) {
+    fun stop(reason: String, retry: Boolean = true, success: Boolean = false) {
         //if we got here and authenticating is already set to false
         //this means something else already stopped the services. retreat
         if (!AuthFlowLogs.readIsAuthenticating().value) return
 
-        pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds" else "", if (!retry && !finished) 2 else 1)
+        pushLog.new("INTERRUPTED: $reason" + if(retry && !success) ". Trying again in 10 seconds" else "", notId = if (!retry && !success) 2 else 1)
 
         //this stops the service if an error (such as end of stream errors)
         //occurred from the auth flow and retry was not requested
-        if (!retry && !finished){
+        if (!retry && !success){
             Intent(thisContext, ConnectionManagerService::class.java).also {
                 it.action = ConnectionManagerService.Actions.STOP.toString()
                 thisContext.startService(it)
@@ -63,7 +62,7 @@ class AuthFlow (context: Context) {
         //if retry was not requested and finished is set to true, don't do anything
         //this way the app will sit doing nothing but listening for connection changes
         //so it can restart auth flow if wifi state changes
-        if (finished) {
+        if (success) {
             AuthFlowLogs.setIsAuthenticating(false)
             return
         }
@@ -78,6 +77,7 @@ class AuthFlow (context: Context) {
 
     private fun getMagic() {
         if (!AuthFlowLogs.readIsServiceRunning().value) return
+        queue.cache.clear()
         queue.add(StringRequest(
             Request.Method.GET, url,
             { response ->
@@ -96,6 +96,7 @@ class AuthFlow (context: Context) {
     private fun validateMagic() {
         if (!AuthFlowLogs.readIsServiceRunning().value) return
         validateUrl = "$validateUrl$magic"
+        queue.cache.clear()
         queue.add(StringRequest(
             Request.Method.GET, validateUrl,
             {
@@ -113,10 +114,11 @@ class AuthFlow (context: Context) {
         pushLog.new("Pushing authentication payload")
 
         val pureText = "4tredir=$url&magic=$magic&username=$username&password=$password"
+        queue.cache.clear()
         queue.add(
             object : StringRequest(Method.POST, postUrl,
                 Response.Listener {
-                    stop("Authenticated", finished = true)
+                    stop("Authenticated", success = true)
                 },
                 Response.ErrorListener {
                     pushLog.new("Got end of stream (maybe expected). Testing your connection!")
@@ -134,10 +136,16 @@ class AuthFlow (context: Context) {
     }
 
     private fun checkConnection() {
+        pushLog.new("Attempting HTTP request to Web.")
+        queue.cache.clear()
         queue.add(StringRequest(Request.Method.GET, "https://caldiag.github.io/helloworld/", { response ->
-            if (response == "helloworld") stop("Authenticated", finished = true)
+            if (response == "helloworld") {
+                stop("Got $response, authenticated.", success = true)
+            }
         }, {
-            stop("Could not validate connection. Trying to authenticate again.")
+            //retry is false because getMagic retries manually.
+            stop("Could not validate connection. Trying to get magic ID", retry = false, success = false)
+            getMagic()
         }))
     }
 
