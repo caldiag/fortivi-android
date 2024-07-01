@@ -49,7 +49,7 @@ fun Home(context: Context, prefs: SharedPreferences, lifecycleOwner: LifecycleOw
     val logs = remember { mutableStateListOf<String>() }
     var isRunning by remember { mutableStateOf(false) }
 
-    AuthFlowLogs.workResult.observe(lifecycleOwner) { result ->
+    AuthFlowLogs.logsList.observe(lifecycleOwner) { result ->
         logs.clear()
         logs.addAll(result)
     }

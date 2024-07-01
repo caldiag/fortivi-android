@@ -21,7 +21,7 @@ class ConnectionManagerService: Service() {
         when (intent?.action){
             Actions.START.toString() -> start()
             Actions.STOP.toString() -> {
-                AuthFlowLogs.setIsRunning(false)
+                AuthFlowLogs.setIsServiceRunning(false)
                 stopSelf()
             }
         }
@@ -29,7 +29,7 @@ class ConnectionManagerService: Service() {
     }
 
     private fun start() {
-        val notification = NotificationCompat.Builder(applicationContext, "manager_channel").setAutoCancel(false).setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle("Running FortiGate").setContentText("Logs go here").setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE).setOngoing(true).setPriority(NotificationCompat.PRIORITY_HIGH).build()
+        val notification = NotificationCompat.Builder(applicationContext, "manager_channel").setAutoCancel(false).setSmallIcon(R.drawable.ic_launcher_foreground).setContentTitle("Running FortiGate").setContentText("Waiting for connection").setForegroundServiceBehavior(FOREGROUND_SERVICE_IMMEDIATE).setOngoing(true).setPriority(NotificationCompat.PRIORITY_HIGH).build()
         val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         connectivityCallback = ConnectivityCallback(this)
 
@@ -39,7 +39,7 @@ class ConnectionManagerService: Service() {
             .build()
 
         connectivityManager.registerNetworkCallback(networkRequest, connectivityCallback)
-        AuthFlowLogs.setIsRunning(true)
+        AuthFlowLogs.setIsServiceRunning(true)
         startForeground(1, notification)
     }
 

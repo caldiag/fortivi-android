@@ -32,13 +32,10 @@ class AuthFlow (context: Context) {
     private val pushLog = PushLogs(thisContext)
 
     fun start() {
+        AuthFlowLogs.setIsAuthenticating(true)
         pushLog.new("Start: fetching credentials")
         if(username == "" || password == ""){
             stop("Could not auto-start: no credentials saved", retry = false)
-            Intent(thisContext, ConnectionManagerService::class.java).also {
-                it.action = ConnectionManagerService.Actions.STOP.toString()
-                thisContext.startService(it)
-            }
             return
         }
         pushLog.new("Attempting HTTP Request to Web with user $username")
@@ -46,50 +43,54 @@ class AuthFlow (context: Context) {
     }
 
     fun stop(reason: String, retry: Boolean = true, finished: Boolean = false) {
-        pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds" else "")
+        pushLog.new("INTERRUPTED: $reason" + if(retry) ". Trying again in 10 seconds" else "", if (!retry && !finished) 2 else 1)
+
         //this stops the service if an error (such as end of stream errors)
-        // occurred from the auth flow and retry was not requested
+        //occurred from the auth flow and retry was not requested
         if (!retry && !finished){
             Intent(thisContext, ConnectionManagerService::class.java).also {
                 it.action = ConnectionManagerService.Actions.STOP.toString()
                 thisContext.startService(it)
             }
+            AuthFlowLogs.setIsServiceRunning(false)
             return
         }
 
         //if retry was not requested and finished is set to true, don't do anything
         //this way the app will sit doing nothing but listening for connection changes
         //so it can restart auth flow if wifi state changes
-        if (finished) return
+        if (finished) {
+            AuthFlowLogs.setIsAuthenticating(false)
+            return
+        }
 
         android.os.Handler(Looper.getMainLooper()).postDelayed(
             {
-                if (AuthFlowLogs.readIsRunning().value) start()
+                if (AuthFlowLogs.readIsServiceRunning().value) start()
             },
             10000
         )
     }
 
     private fun getMagic() {
-        if (!AuthFlowLogs.readIsRunning().value) return
+        if (!AuthFlowLogs.readIsServiceRunning().value) return
         queue.add(StringRequest(
             Request.Method.GET, url,
             { response ->
                 //stupid and unfathomable
                 magic = response.substring(response.indexOf("?")+1, response.indexOf("?")+17)
-
                 pushLog.new("Got possible magic ID: $magic")
+
                 validateMagic()
             },
             { error ->
-                checkConnection()
                 stop("Could not get magic ID. $error")
             }
         ))
     }
 
     private fun validateMagic() {
-        if (!AuthFlowLogs.readIsRunning().value) return
+        if (!AuthFlowLogs.readIsServiceRunning().value) return
         validateUrl = "$validateUrl$magic"
         queue.add(StringRequest(
             Request.Method.GET, validateUrl,
@@ -104,7 +105,7 @@ class AuthFlow (context: Context) {
     }
 
     private fun authenticate() {
-        if (!AuthFlowLogs.readIsRunning().value) return
+        if (!AuthFlowLogs.readIsServiceRunning().value) return
         pushLog.new("Pushing authentication payload")
 
         val pureText = "4tredir=$url&magic=$magic&username=$username&password=$password"
