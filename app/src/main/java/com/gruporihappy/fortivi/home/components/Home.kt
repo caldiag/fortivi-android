@@ -1,6 +1,6 @@
 package com.gruporihappy.fortivi.home.components
 
-import AuthFlowLogs
+import com.gruporihappy.fortivi.auth.data.AuthFlowLogs
 import CredentialsLogs
 import android.content.Context
 import android.content.Intent

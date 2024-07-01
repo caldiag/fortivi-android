@@ -10,6 +10,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE
 import com.gruporihappy.fortivi.R
+import com.gruporihappy.fortivi.auth.data.AuthFlowLogs
 
 class ConnectionManagerService: Service() {
     private lateinit var connectivityCallback: ConnectivityCallback

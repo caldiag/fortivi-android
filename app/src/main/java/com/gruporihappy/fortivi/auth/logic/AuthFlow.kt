@@ -1,6 +1,6 @@
 package com.gruporihappy.fortivi.auth.logic
 
-import AuthFlowLogs
+import com.gruporihappy.fortivi.auth.data.AuthFlowLogs
 import CredentialsLogs
 import android.annotation.SuppressLint
 import android.content.Context

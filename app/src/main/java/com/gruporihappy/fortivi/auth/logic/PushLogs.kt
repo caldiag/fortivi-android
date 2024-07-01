@@ -7,17 +7,17 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.gruporihappy.fortivi.MainActivity
 import com.gruporihappy.fortivi.R
+import com.gruporihappy.fortivi.auth.data.AuthFlowLogs
 
-public class PushLogs(context: Context, id: Int = 1) {
+class PushLogs(context: Context) {
     private val thisContext = context
-    private val thisId = id
 
     private val intent = Intent(thisContext, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT
     }
     private val pendingIntent: PendingIntent = PendingIntent.getActivity(thisContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
-    public fun new(log: String, notId: Int = thisId) {
+    fun new(log: String, notId: Int = 1) {
         val notificationManager = thisContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val current = AuthFlowLogs.read().plus(log.take(200)).toMutableList()
         AuthFlowLogs.updateWorkResult(current)
@@ -27,7 +27,6 @@ public class PushLogs(context: Context, id: Int = 1) {
             .setContentText(current.last())
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
-        notificationManager.notify(thisId, builder.build())
-        println(log)
+        notificationManager.notify(notId, builder.build())
     }
 }

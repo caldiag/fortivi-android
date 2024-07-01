@@ -1,13 +1,12 @@
 package com.gruporihappy.fortivi.auth.logic
 
-import AuthFlowLogs
+import com.gruporihappy.fortivi.auth.data.AuthFlowLogs
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.gruporihappy.fortivi.auth.logic.AuthFlow
 
 class WifiWorker(context: Context, workerParams: WorkerParameters) :
     Worker(context, workerParams) {

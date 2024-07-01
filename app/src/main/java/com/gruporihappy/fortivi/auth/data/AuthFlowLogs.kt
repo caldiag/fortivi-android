@@ -1,3 +1,5 @@
+package com.gruporihappy.fortivi.auth.data
+
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.LiveData
